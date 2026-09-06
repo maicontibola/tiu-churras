@@ -1,4 +1,5 @@
 {
+  "id": "./",
   "name": "Tiu Churras — Planejador de Churrasco",
   "short_name": "Tiu Churras",
   "description": "Planejador de churrasco com cálculo de carnes, bebidas, lista de compras e divisão da conta.",
@@ -7,6 +8,10 @@
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
+  "display_override": [
+    "standalone",
+    "browser"
+  ],
   "orientation": "portrait",
   "background_color": "#090d14",
   "theme_color": "#f59e0b",
@@ -15,6 +20,7 @@
     "food",
     "utilities"
   ],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "./icons/icon-192.png",
@@ -27,6 +33,50 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "./screenshots/home.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Tela inicial do Tiu Churras"
+    },
+    {
+      "src": "./screenshots/result.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Resultado e divisão da conta no Tiu Churras"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Novo cálculo",
+      "short_name": "Novo cálculo",
+      "description": "Começar um novo planejamento de churrasco",
+      "url": "./?action=new",
+      "icons": [
+        {
+          "src": "./icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Histórico",
+      "short_name": "Histórico",
+      "description": "Abrir seus churrascos salvos",
+      "url": "./?action=history",
+      "icons": [
+        {
+          "src": "./icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     }
   ]
 }
