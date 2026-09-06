@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#f59e0b">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tiu Churras">
+<meta name="description" content="Planejador de churrasco com cálculo de carnes, bebidas, lista de compras e divisão da conta.">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<style>
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;
+    font-family:Inter,system-ui,sans-serif;
+    background:radial-gradient(circle at top,#2a1a0b 0%,#111827 52%,#090d14 100%);
+  }
+  #app{height:min(94vh,920px);max-width:760px}
+  .hide-scrollbar::-webkit-scrollbar{display:none}
+  .hide-scrollbar{scrollbar-width:none}
+  .glass{background:rgba(31,41,55,.78);backdrop-filter:blur(12px)}
+  .choice-card{transition:.18s ease}
+  .choice-card:hover{transform:translateY(-1px);border-color:#f59e0b}
+  .choice-card.selected{
+    border-color:#f59e0b;
+    background:linear-gradient(145deg,rgba(245,158,11,.2),rgba(234,88,12,.08));
+    box-shadow:0 0 0 1px rgba(245,158,11,.12)
+  }
+  .item-card{transition:.16s ease}
+  .item-card:hover{border-color:#f59e0b}
+  .item-card.selected{
+    border-color:#f59e0b;
+    background:linear-gradient(145deg,rgba(245,158,11,.16),rgba(234,88,12,.06))
+  }
+  .disabled-example{opacity:.42;pointer-events:none;filter:saturate(.4)}
+  .modal-backdrop{background:rgba(0,0,0,.82);backdrop-filter:blur(10px)}
+  #adSlot{display:none}
+  body.android-app #adSlot{
+    display:block;
+    min-height:56px;
+    padding:4px 8px;
+    background:#090d14;
+    border-top:1px solid rgba(55,65,81,.55)
+  }
+  #adSlotInner{
+    width:100%;
+    min-height:48px;
+    border-radius:12px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#4b5563;
+    font-size:10px
+  }
+  body.android-app #adSlotInner{background:rgba(17,24,39,.55)}
+  @media(max-width:640px){
+    #app{height:100dvh;max-width:none;border-radius:0}
+  }
+</style>
+</head>
+
+<body class="min-h-screen text-gray-100 flex items-center justify-center p-2 sm:p-4">
+
+<div id="app" class="w-full bg-gray-950 border border-gray-800 rounded-[28px] shadow-2xl overflow-hidden flex flex-col">
+
+  <header class="bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 p-4 text-white">
+    <div class="flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="w-10 h-10 rounded-2xl bg-black/20 flex items-center justify-center text-xl shrink-0">🔥</div>
+        <div class="min-w-0">
+          <h1 class="font-extrabold leading-tight">Tiu Churras</h1>
+          <p class="text-xs text-amber-100">Eu calculo. Você aproveita.</p>
+        </div>
+      </div>
+      <div class="flex gap-2 shrink-0">
+        <button onclick="openHistory()" class="bg-black/20 hover:bg-black/30 px-3 py-2 rounded-xl text-xs font-bold" title="Histórico">📋 Histórico</button>
+        <button onclick="openManager()" class="bg-black/20 hover:bg-black/30 px-3 py-2 rounded-xl text-xs font-bold" title="Gerenciar itens">⚙️</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="bg-gray-900 border-b border-gray-800 px-4 py-3">
+    <div class="flex justify-between items-center text-xs">
+      <span id="stepLabel" class="font-bold text-amber-400">Quem vai?</span>
+      <span id="stepCount" class="text-gray-500">1 de 4</span>
+    </div>
+    <div class="flex gap-1 mt-2" id="progress"></div>
+  </div>
+
+  <main id="content" class="flex-1 overflow-y-auto hide-scrollbar p-4 sm:p-6"></main>
+
+  <div id="adSlot" aria-hidden="true">
+    <div id="adSlotInner">Publicidade</div>
+  </div>
+
+  <footer class="bg-gray-950 border-t border-gray-800 p-3 sm:p-4">
+    <div class="grid grid-cols-2 gap-2 mb-3">
+      <button onclick="saveCalculation()" class="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-200 font-bold py-2.5 rounded-xl text-xs">💾 Salvar cálculo</button>
+      <button onclick="startNewCalculation()" class="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-200 font-bold py-2.5 rounded-xl text-xs">➕ Novo cálculo</button>
+    </div>
+    <div id="miniSummary" class="grid grid-cols-3 gap-2 mb-3"></div>
+    <div class="flex gap-2">
+      <button id="backBtn" onclick="prevStep()" class="w-1/3 bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold py-3 rounded-2xl disabled:opacity-30 disabled:cursor-not-allowed">← Voltar</button>
+      <button id="nextBtn" onclick="nextStep()" class="w-2/3 bg-amber-500 hover:bg-amber-400 text-gray-950 font-extrabold py-3 rounded-2xl shadow-lg">Montar meu churrasco →</button>
+    </div>
+  </footer>
+</div>
+
+<div id="saveModal" class="hidden fixed inset-0 z-[60] modal-backdrop p-4 items-center justify-center">
+  <div class="bg-gray-900 border border-gray-700 rounded-3xl w-full max-w-md overflow-hidden">
+    <div class="p-5 bg-gray-800 border-b border-gray-700">
+      <h2 id="saveModalTitle" class="font-extrabold text-lg">Salvar cálculo</h2>
+      <p class="text-xs text-gray-400 mt-1">Dê um nome ao churrasco para encontrá-lo depois no histórico.</p>
+    </div>
+    <div class="p-5 space-y-4">
+      <div>
+        <label class="text-xs font-bold text-gray-400 block mb-2">Nome</label>
+        <input id="saveCalcName" type="text" placeholder="Ex.: Churrasco da família" class="w-full bg-gray-950 border border-gray-700 rounded-xl p-3 text-sm outline-none focus:border-amber-500">
+      </div>
+      <div>
+        <label class="text-xs font-bold text-gray-400 block mb-2">Data do churrasco</label>
+        <input id="saveCalcDate" type="date" class="w-full bg-gray-950 border border-gray-700 rounded-xl p-3 text-sm outline-none focus:border-amber-500">
+      </div>
+    </div>
+    <div class="p-4 bg-gray-800 border-t border-gray-700 flex gap-2">
+      <button onclick="closeSaveModal()" class="flex-1 bg-gray-700 hover:bg-gray-600 py-3 rounded-xl text-sm font-bold">Cancelar</button>
+      <button id="saveModalConfirm" onclick="confirmSaveCalculation()" class="flex-1 bg-amber-500 hover:bg-amber-400 text-gray-950 py-3 rounded-xl text-sm font-extrabold">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div id="historyModal" class="hidden fixed inset-0 z-50 modal-backdrop p-4 items-center justify-center">
+  <div class="bg-gray-900 border border-gray-700 rounded-3xl w-full max-w-xl max-h-[90vh] overflow-hidden flex flex-col">
+    <div class="p-4 bg-gray-800 border-b border-gray-700 flex justify-between items-center">
+      <div>
+        <h2 class="font-extrabold">Histórico de churrascos</h2>
+        <p class="text-xs text-gray-400">Seus cálculos ficam salvos neste navegador.</p>
+      </div>
+      <button onclick="closeHistory()" class="text-gray-400 hover:text-white text-2xl">×</button>
+    </div>
+    <div id="historyList" class="p-4 overflow-y-auto space-y-3"></div>
+    <div class="p-3 bg-gray-800 border-t border-gray-700 flex justify-end">
+      <button onclick="closeHistory()" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-xl text-sm font-bold">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<div id="manager" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm p-4 items-center justify-center">
+  <div class="bg-gray-900 border border-gray-700 rounded-3xl w-full max-w-xl max-h-[90vh] overflow-hidden flex flex-col">
+    <div class="p-4 bg-gray-800 border-b border-gray-700 flex justify-between items-center">
+      <div>
+        <h2 class="font-extrabold">Gerenciar itens</h2>
+        <p class="text-xs text-gray-400">Preços ficam salvos neste navegador.</p>
+      </div>
+      <button onclick="closeManager()" class="text-gray-400 hover:text-white text-2xl">×</button>
+    </div>
+
+    <div class="p-4 overflow-y-auto space-y-5">
+      <form onsubmit="addCustomItem(event)" class="bg-gray-800/70 border border-gray-700 rounded-2xl p-4 space-y-3">
+        <h3 class="text-sm font-extrabold text-amber-400">+ Adicionar item</h3>
+        <div class="grid sm:grid-cols-2 gap-3">
+          <input id="newName" required placeholder="Ex.: Provoleta" class="bg-gray-950 border border-gray-700 rounded-xl p-3 text-sm outline-none focus:border-amber-500">
+          <select id="newCat" class="bg-gray-950 border border-gray-700 rounded-xl p-3 text-sm outline-none focus:border-amber-500">
+            <option value="carne">Carne</option>
+            <option value="aperitivo">Aperitivo</option>
+            <option value="acompanhamento">Acompanhamento</option>
+            <option value="bebida">Bebida</option>
+            <option value="material">Estrutura</option>
+          </select>
+          <input id="newPrice" required type="number" step=".01" min="0" placeholder="Preço" class="bg-gray-950 border border-gray-700 rounded-xl p-3 text-sm">
+          <select id="newUnit" class="bg-gray-950 border border-gray-700 rounded-xl p-3 text-sm">
+            <option value="kg">kg</option>
+            <option value="L">L</option>
+            <option value="un">un</option>
+            <option value="pct">pacote</option>
+          </select>
+          <input id="newConsumption" required type="number" step=".01" min="0" placeholder="Consumo por pessoa (g/ml/un)" class="sm:col-span-2 bg-gray-950 border border-gray-700 rounded-xl p-3 text-sm">
+        </div>
+        <button class="w-full bg-amber-500 text-gray-950 font-extrabold py-3 rounded-xl">Salvar item</button>
+      </form>
+      <div id="managerList" class="space-y-2"></div>
+    </div>
+
+    <div class="p-3 bg-gray-800 border-t border-gray-700 text-right">
+      <button onclick="closeManager()" class="bg-gray-700 px-4 py-2 rounded-xl text-sm font-bold">Concluído</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const DB_KEY='churrascalc_db_v1';
+const CURRENT_KEY='churrascalc_current_v1';
+const HISTORY_KEY='churrascalc_history_v1';
+
+const defaults=[
+  {id:'picanha',name:'Picanha',cat:'carne',price:89.9,unit:'kg',cons:180,icon:'🥩'},
+  {id:'alcatra',name:'Alcatra',cat:'carne',price:46.9,unit:'kg',cons:180,icon:'🥩'},
+  {id:'costela',name:'Costela bovina',cat:'carne',price:38.9,unit:'kg',cons:220,icon:'🥩'},
+  {id:'fraldinha',name:'Fraldinha',cat:'carne',price:49.9,unit:'kg',cons:170,icon:'🥩'},
+  {id:'linguica',name:'Linguiça artesanal',cat:'carne',price:32.9,unit:'kg',cons:150,icon:'🌭'},
+  {id:'coracao',name:'Coração de frango',cat:'carne',price:39.9,unit:'kg',cons:90,icon:'❤️'},
+  {id:'asinha',name:'Asinha de frango',cat:'carne',price:24.9,unit:'kg',cons:130,icon:'🍗'},
+  {id:'queijo',name:'Queijo coalho',cat:'aperitivo',price:42,unit:'kg',cons:60,icon:'🧀'},
+  {id:'pao',name:'Pão de alho',cat:'aperitivo',price:18,unit:'pct',cons:1,icon:'🥖'},
+  {id:'arroz',name:'Arroz',cat:'acompanhamento',price:6.5,unit:'kg',cons:55,icon:'🍚'},
+  {id:'farofa',name:'Farofa',cat:'acompanhamento',price:12,unit:'kg',cons:35,icon:'🥣'},
+  {id:'maionese',name:'Maionese de batata',cat:'acompanhamento',price:15,unit:'kg',cons:100,icon:'🥔'},
+  {id:'vinagrete',name:'Vinagrete',cat:'acompanhamento',price:10,unit:'kg',cons:45,icon:'🍅'},
+  {id:'cerveja',name:'Cerveja',cat:'bebida',price:9.5,unit:'L',cons:1800,icon:'🍻'},
+  {id:'refri',name:'Refrigerante',cat:'bebida',price:7,unit:'L',cons:500,icon:'🥤'},
+  {id:'agua',name:'Água',cat:'bebida',price:3,unit:'L',cons:500,icon:'💧'},
+  {id:'suco',name:'Suco',cat:'bebida',price:12,unit:'L',cons:350,icon:'🧃'},
+  {id:'carvao',name:'Carvão',cat:'material',price:12,unit:'kg',cons:1.2,icon:'🔥'},
+  {id:'gelo',name:'Gelo (saco 5 kg)',cat:'material',price:10,unit:'pct',cons:.25,icon:'🧊'},
+  {id:'descartaveis',name:'Copos e pratos',cat:'material',price:15,unit:'pct',cons:.12,icon:'🍽️'},
+  {id:'guardanapo',name:'Guardanapos',cat:'material',price:6,unit:'pct',cons:.06,icon:'🧻'},
+  {id:'acendedor',name:'Acendedor',cat:'material',price:5,unit:'un',cons:.1,icon:'✨'}
+];
+
+const profiles={
+  pratico:['alcatra','linguica','pao','farofa','refri','agua','carvao','gelo','descartaveis','guardanapo','acendedor'],
+  tradicional:['alcatra','linguica','picanha','pao','arroz','maionese','vinagrete','cerveja','refri','agua','carvao','gelo','descartaveis','guardanapo','acendedor'],
+  economico:['alcatra','linguica','asinha','pao','arroz','farofa','refri','agua','carvao','gelo','descartaveis','guardanapo','acendedor'],
+  caprichado:['picanha','fraldinha','linguica','coracao','queijo','pao','maionese','vinagrete','cerveja','agua','suco','carvao','gelo','descartaveis','guardanapo','acendedor']
+};
+
+const profileText={
+  pratico:['Prático','Poucas escolhas, sem complicação.'],
+  tradicional:['Tradicional','Equilibrado para agradar todo mundo.'],
+  economico:['Econômico','Boa quantidade, cuidando do bolso.'],
+  caprichado:['Caprichado','Mais variedade para uma ocasião especial.']
+};
+
+const emptyState={
+  step:1,
+  adults:0,
+  kids:0,
+  profile:null,
+  meatGrams:null,
+  groups:[],
+  barbecueName:'',
+  barbecueDate:'',
+  historyId:null
+};
+
+function cloneDefaults(){
+  return defaults.map(item=>({...item,active:false}));
+}
+
+function loadDb(){
+  try{
+    const saved=JSON.parse(localStorage.getItem(DB_KEY));
+    return Array.isArray(saved)?saved:cloneDefaults();
+  }catch(e){
+    return cloneDefaults();
+  }
+}
+
+function loadCurrent(){
+  try{
+    const saved=JSON.parse(localStorage.getItem(CURRENT_KEY));
+    if(saved&&typeof saved==='object'){
+      return {...emptyState,...saved,groups:Array.isArray(saved.groups)?saved.groups:[]};
+    }
+  }catch(e){}
+  return {...emptyState,groups:[]};
+}
+
+function loadHistory(){
+  try{
+    const saved=JSON.parse(localStorage.getItem(HISTORY_KEY));
+    return Array.isArray(saved)?saved:[];
+  }catch(e){
+    return [];
+  }
+}
+
+let db=loadDb();
+let state=loadCurrent();
+let history=loadHistory();
+
+function saveDb(){
+  localStorage.setItem(DB_KEY,JSON.stringify(db));
+}
+
+function saveCurrent(){
+  localStorage.setItem(CURRENT_KEY,JSON.stringify(state));
+  saveDb();
+}
+
+function todayISO(){
+  const d=new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function formatDate(date){
+  if(!date)return 'Data não definida';
+  const p=date.split('-');
+  return p.length===3?`${p[2]}/${p[1]}/${p[0]}`:date;
+}
+
+function totalPeople(){
+  return state.adults+state.kids;
+}
+
+function money(v){
+  return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(v);
+}
+
+function roundQty(v,unit){
+  if(unit==='kg'||unit==='L')return Math.ceil(v*10)/10;
+  return Math.max(1,Math.ceil(v));
+}
+
+function meatTotal(){
+  if(!state.meatGrams)return 0;
+  return (state.adults*state.meatGrams+state.kids*state.meatGrams*.5)/1000;
+}
+
+function itemQty(item){
+  const p=totalPeople();
+  if(!p)return 0;
+
+  if(item.cat==='carne'){
+    const selected=db.filter(x=>x.active&&x.cat==='carne');
+    const weight=selected.reduce((s,x)=>s+x.cons,0)||1;
+    return Math.max(.1,roundQty(meatTotal()*(item.cons/weight),'kg'));
+  }
+
+  if(item.cat==='aperitivo'){
+    return item.unit==='pct'
+      ? Math.max(1,Math.ceil(p*item.cons/5))
+      : roundQty((state.adults*item.cons+state.kids*item.cons*.5)/1000,item.unit);
+  }
+
+  if(item.cat==='acompanhamento'){
+    return item.unit==='kg'
+      ? roundQty((state.adults*item.cons+state.kids*item.cons*.5)/1000,'kg')
+      : roundQty(p*item.cons,item.unit);
+  }
+
+  if(item.cat==='bebida'){
+    return roundQty((state.adults*item.cons+state.kids*item.cons*.7)/1000,'L');
+  }
+
+  if(item.id==='carvao')return Math.max(1,Math.ceil(p*1.2));
+  if(item.id==='gelo')return Math.max(1,Math.ceil(p/4));
+
+  return Math.max(1,Math.ceil(p*item.cons));
+}
+
+function totalCost(){
+  return db.filter(x=>x.active).reduce((sum,x)=>sum+itemQty(x)*x.price,0);
+}
+
+function totalDrink(){
+  return db.filter(x=>x.active&&x.cat==='bebida').reduce((sum,x)=>sum+itemQty(x),0);
+}
+
+function applyProfile(profile){
+  if(state.profile===profile){
+    state.profile=null;
+    db.forEach(item=>item.active=false);
+  }else{
+    state.profile=profile;
+    db.forEach(item=>item.active=profiles[profile].includes(item.id));
+  }
+  saveCurrent();
+  render();
+}
+
+function setPeople(kind,delta){
+  state[kind]=Math.max(0,state[kind]+delta);
+  saveCurrent();
+  render();
+}
+
+function setMeat(value){
+  state.meatGrams=Number(value);
+  saveCurrent();
+  render(true);
+}
+
+function toggle(id){
+  const content=document.getElementById('content');
+  const scrollTop=content?content.scrollTop:0;
+  const item=db.find(x=>x.id===id);
+  if(!item)return;
+  item.active=!item.active;
+  state.profile=null;
+  saveCurrent();
+  render(false);
+  requestAnimationFrame(()=>{content.scrollTop=scrollTop;});
+}
+
+function nextStep(){
+  if(state.step<4){state.step++;saveCurrent();render();}
+}
+
+function prevStep(){
+  if(state.step>1){state.step--;saveCurrent();render();}
+}
+
+function goStep(step){
+  state.step=step;
+  saveCurrent();
+  render();
+}
+
+function render(preserveScroll=false){
+  const content=document.getElementById('content');
+  const previousScrollTop=content?content.scrollTop:0;
+
+  document.getElementById('stepLabel').textContent=['','Quem vai?','Seu churrasco','Complete a lista','Tudo pronto!'][state.step];
+  document.getElementById('stepCount').textContent=state.step+' de 4';
+  document.getElementById('progress').innerHTML=[1,2,3,4].map(i=>`<div class="h-1.5 rounded-full flex-1 ${i<=state.step?'bg-amber-500':'bg-gray-700'}"></div>`).join('');
+  document.getElementById('backBtn').disabled=state.step===1;
+
+  document.getElementById('nextBtn').textContent=
+    state.step===1?'Montar meu churrasco →':
+    state.step===2?'Completar lista →':
+    state.step===3?'Ver resultado →':'Compartilhar no WhatsApp';
+
+  document.getElementById('nextBtn').onclick=state.step===4?shareWhatsApp:nextStep;
+
+  content.innerHTML=
+    state.step===1?screenPeople():
+    state.step===2?screenMeat():
+    state.step===3?screenList():screenResult();
+
+  renderMini();
+
+  if(preserveScroll){
+    requestAnimationFrame(()=>{content.scrollTop=previousScrollTop;});
+  }else{
+    content.scrollTop=0;
+  }
+}
+
+function renderMini(){
+  document.getElementById('miniSummary').innerHTML=`
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-2 text-center">
+      <span class="text-[10px] text-gray-500 block">Pessoas</span>
+      <b>${totalPeople()}</b>
+    </div>
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-2 text-center">
+      <span class="text-[10px] text-gray-500 block">Carne</span>
+      <b>${meatTotal().toFixed(1)} kg</b>
+    </div>
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-2 text-center">
+      <span class="text-[10px] text-gray-500 block">Estimativa</span>
+      <b>${money(totalCost())}</b>
+    </div>`;
+}
+
+function screenPeople(){
+  return `
+    <div class="space-y-6">
+      <div class="glass border border-amber-500/30 rounded-3xl p-5 text-center">
+        <div class="text-[11px] uppercase tracking-wider text-gray-500 font-bold">Total</div>
+        <div class="flex items-center justify-center gap-5 mt-2">
+          <button onclick="setPeople('adults',-1)" class="w-12 h-12 rounded-2xl bg-gray-700 text-2xl font-bold text-amber-400">−</button>
+          <div><strong class="text-6xl font-black">${totalPeople()}</strong><div class="text-sm text-gray-400">pessoas</div></div>
+          <button onclick="setPeople('adults',1)" class="w-12 h-12 rounded-2xl bg-amber-500 text-gray-950 text-2xl font-bold">+</button>
+        </div>
+        <div class="text-xs text-gray-500 mt-3">Ajuste adultos e crianças abaixo.</div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        ${personCounter('adults','👤','Adultos',state.adults)}
+        ${personCounter('kids','🧒','Crianças',state.kids)}
+      </div>
+
+      <div>
+        <h3 class="text-sm font-extrabold mb-3">Não sabe por onde começar?</h3>
+        <p class="text-xs text-gray-500 mb-3">Escolha um estilo para montar uma sugestão automaticamente.</p>
+        <div class="grid grid-cols-2 gap-3">
+          ${Object.keys(profileText).map(profile=>`
+            <button onclick="applyProfile('${profile}')" class="choice-card text-left border rounded-2xl p-4 ${state.profile===profile?'selected border-amber-500':'border-gray-700 bg-gray-900'}">
+              <div class="text-xl mb-2">${profile==='pratico'?'✨':profile==='tradicional'?'🔥':profile==='economico'?'💰':'👑'}</div>
+              <b class="block">${profileText[profile][0]}</b>
+              <span class="text-xs text-gray-400">${profileText[profile][1]}</span>
+            </button>
+          `).join('')}
+        </div>
+      </div>
+
+      <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4 text-sm text-gray-300">
+        <b class="text-white">Dica</b>
+        <p class="text-xs text-gray-500 mt-1">Você poderá trocar qualquer item depois.</p>
+      </div>
+    </div>`;
+}
+
+function personCounter(key,icon,label,value){
+  return `
+    <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4 flex items-center justify-between">
+      <div><div class="text-xl">${icon}</div><b>${label}</b></div>
+      <div class="flex items-center gap-2">
+        <button onclick="setPeople('${key}',-1)" class="w-9 h-9 bg-gray-800 rounded-xl text-amber-400 font-bold">−</button>
+        <b class="w-6 text-center">${value}</b>
+        <button onclick="setPeople('${key}',1)" class="w-9 h-9 bg-gray-800 rounded-xl text-amber-400 font-bold">+</button>
+      </div>
+    </div>`;
+}
+
+function screenMeat(){
+  const meats=db.filter(x=>x.cat==='carne'&&x.active);
+  return `
+    <div class="space-y-5">
+      <div class="bg-gradient-to-br from-amber-500 to-orange-600 text-gray-950 rounded-3xl p-5">
+        <div class="flex justify-between items-start">
+          <div>
+            <div class="text-xs uppercase font-black opacity-70">Carne recomendada</div>
+            <div class="text-4xl font-black mt-1">${meatTotal().toFixed(1)} kg</div>
+          </div>
+          <div class="text-right">
+            <div class="text-xs font-bold opacity-70">${state.adults} adultos · ${state.kids} crianças</div>
+            <div class="text-sm font-black mt-1">${state.meatGrams?state.meatGrams+' g/adulto':'Escolha uma porção'}</div>
+          </div>
+        </div>
+        <p class="text-xs font-semibold mt-3 opacity-80">Crianças entram automaticamente com metade da porção de adulto.</p>
+      </div>
+
+      <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4">
+        <div class="flex justify-between items-center">
+          <b>Quanto você quer servir?</b>
+          <b class="text-amber-400">${state.meatGrams?state.meatGrams+' g':'Escolha'}</b>
+        </div>
+        <div class="grid grid-cols-4 gap-2 mt-3">
+          ${[200,250,300,350].map(value=>`
+            <button onclick="setMeat(${value})" class="py-2.5 rounded-xl border text-xs font-extrabold ${state.meatGrams===value?'bg-amber-500 text-gray-950 border-amber-500':'bg-gray-800 border-gray-700'}">${value} g</button>
+          `).join('')}
+        </div>
+        <p class="text-xs text-gray-500 mt-3">Isso controla o total de carne do churrasco. A distribuição entre as opções é automática.</p>
+      </div>
+
+      <div class="flex items-center justify-between">
+        <div><h3 class="font-extrabold">Carnes escolhidas</h3><p class="text-xs text-gray-500">Toque para adicionar ou remover.</p></div>
+        <span class="text-xs text-amber-400 font-bold">${meats.length} opções</span>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">${db.filter(x=>x.cat==='carne').map(itemTile).join('')}</div>
+
+      <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4">
+        <div class="flex justify-between items-center"><b>Como o cálculo funciona?</b><span class="text-amber-400">ⓘ</span></div>
+        <p class="text-xs text-gray-500 mt-2">${state.meatGrams||0} g por adulto + 50% da porção para cada criança. Depois distribuo esse total entre as carnes escolhidas.</p>
+      </div>
+    </div>`;
+}
+
+function itemTile(item){
+  const q=item.active?itemQty(item):0;
+  const qty=item.active?(item.unit==='kg'||item.unit==='L'?q.toFixed(1)+' '+item.unit:q+' '+item.unit):'';
+
+  return `
+    <button onclick="toggle('${item.id}')" class="item-card text-left border rounded-2xl p-3 ${item.active?'selected border-amber-500':'border-gray-800 bg-gray-900'}">
+      <div class="flex justify-between">
+        <span class="text-xl">${item.icon}</span>
+        <span class="w-5 h-5 rounded-full ${item.active?'bg-amber-500 text-gray-950':'bg-gray-800 text-gray-500'} text-[10px] flex items-center justify-center">${item.active?'✓':''}</span>
+      </div>
+      <b class="text-sm block mt-2">${item.name}</b>
+      <span class="text-[10px] text-gray-500">${money(item.price)}/${item.unit}</span>
+      ${item.active?`<div class="text-xs text-amber-400 font-bold mt-2">${qty}</div>`:''}
+    </button>`;
+}
+
+const cats=[
+  ['aperitivo','🥖 Aperitivos'],
+  ['acompanhamento','🥗 Acompanhamentos'],
+  ['bebida','🥤 Bebidas'],
+  ['material','🔥 Estrutura']
+];
+
+function screenList(){
+  return `
+    <div class="space-y-5">
+      ${cats.map(c=>categorySection(c[0],c[1])).join('')}
+      <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4">
+        <b class="text-sm">💡 Dica</b>
+        <p class="text-xs text-gray-500 mt-1">Você não precisa escolher tudo.</p>
+      </div>
+    </div>`;
+}
+
+function categorySection(cat,label){
+  const arr=db.filter(x=>x.cat===cat);
+  return `
+    <section class="space-y-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="font-extrabold">${label}</h3>
+          <p class="text-xs text-gray-500 mt-1">${arr.filter(x=>x.active).length} selecionados</p>
+        </div>
+        <span class="text-xs text-amber-400 font-bold">${arr.length} opções</span>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">${arr.map(itemTile).join('')}</div>
+    </section>`;
+}
+
+function screenResult(){
+  const active=db.filter(x=>x.active);
+  const cost=totalCost();
+  const p=totalPeople();
+  const per=p?cost/p:0;
+
+  return `
+    <div class="space-y-5">
+      <div class="pt-2">
+        <span class="text-[11px] uppercase tracking-[.18em] text-amber-400 font-extrabold">Tudo pronto</span>
+        <h2 class="text-3xl font-black mt-2">Seu churrasco está pronto! 🔥</h2>
+        <p class="text-sm text-gray-400 mt-2">Agora é só comprar, acender a churrasqueira e aproveitar.</p>
+      </div>
+
+      <div class="bg-gradient-to-br from-amber-500 to-orange-600 text-gray-950 rounded-3xl p-5">
+        <div class="text-xs font-black uppercase opacity-70">Estimativa total</div>
+        <div class="text-4xl font-black mt-1">${money(cost)}</div>
+        <div class="grid grid-cols-2 gap-2 mt-4 text-xs font-bold">
+          <div class="bg-black/10 rounded-xl p-3">👥 ${p} pessoas</div>
+          <div class="bg-black/10 rounded-xl p-3">🥩 ${meatTotal().toFixed(1)} kg</div>
+          <div class="bg-black/10 rounded-xl p-3">🥤 ${totalDrink().toFixed(1)} L</div>
+          <div class="bg-black/10 rounded-xl p-3">🔥 ${active.find(x=>x.id==='carvao')?itemQty(active.find(x=>x.id==='carvao')):0} kg</div>
+        </div>
+      </div>
+
+      <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4">
+        <div class="flex justify-between items-center mb-4">
+          <div>
+            <h3 class="font-extrabold">🛒 Lista de compras</h3>
+            <p class="text-xs text-gray-500">Quantidades já calculadas.</p>
+          </div>
+          <span class="text-xs text-amber-400 font-bold">${active.length} itens</span>
+        </div>
+        ${renderShopping()}
+      </div>
+
+      <div class="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden">
+        <div class="p-4 border-b border-gray-800">
+          <h3 class="font-extrabold">💰 Dividir a conta</h3>
+          <p class="text-xs text-gray-500 mt-1">${money(per)} por pessoa se dividir igualmente.</p>
+        </div>
+
+        <div class="p-4 space-y-3">
+          ${state.groups.length?state.groups.map((g,i)=>groupRow(g,i)).join(''):`
+            <div class="disabled-example border border-dashed border-gray-700 rounded-xl p-3">
+              <b class="text-sm">Ex.: João e família</b>
+              <span class="block text-xs text-gray-500">2 pessoas · apenas exemplo visual</span>
+            </div>`}
+          <button onclick="addGroup()" class="w-full bg-amber-500 text-gray-950 font-extrabold py-3 rounded-xl">+ Adicionar grupo</button>
+        </div>
+      </div>
+
+      <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4 text-xs text-gray-500">
+        Os valores são estimativas e podem variar conforme preços e tamanhos de embalagem da sua região.
+      </div>
+    </div>`;
+}
+
+function renderShopping(){
+  const order=[
+    ['carne','🥩 Carnes'],
+    ['aperitivo','🥖 Aperitivos'],
+    ['acompanhamento','🥗 Acompanhamentos'],
+    ['bebida','🥤 Bebidas'],
+    ['material','🔥 Estrutura']
+  ];
+
+  return order.map(([cat,label])=>{
+    const arr=db.filter(x=>x.active&&x.cat===cat);
+    if(!arr.length)return '';
+    return `
+      <div class="mb-4">
+        <h4 class="text-[11px] font-black text-amber-400 uppercase tracking-wider mb-2">${label}</h4>
+        <div class="space-y-2">
+          ${arr.map(x=>`
+            <div class="flex justify-between gap-3 text-sm">
+              <span>${x.icon} ${x.name}</span>
+              <b class="whitespace-nowrap">${formatQty(x,itemQty(x))}</b>
+            </div>`).join('')}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function formatQty(item,q){
+  if(item.unit==='kg'||item.unit==='L')return q.toFixed(1)+' '+item.unit;
+  return q+' '+item.unit;
+}
+
+function groupRow(g,i){
+  const total=state.groups.reduce((sum,x)=>sum+x.count,0)||1;
+  const amount=totalCost()*g.count/total;
+
+  return `
+    <div class="border border-gray-800 rounded-xl p-3">
+      <div class="flex gap-2 items-center">
+        <input value="${escapeHtml(g.name)}" oninput="state.groups[${i}].name=this.value;saveCurrent()" class="flex-1 bg-transparent border-b border-gray-700 py-1 text-sm outline-none focus:border-amber-500">
+        <input type="number" min="1" value="${g.count}" onchange="state.groups[${i}].count=Math.max(1,Number(this.value));saveCurrent();render()" class="w-16 bg-gray-800 rounded-lg p-2 text-center text-sm">
+        <button onclick="state.groups.splice(${i},1);saveCurrent();render()" class="text-red-400">×</button>
+      </div>
+      <div class="text-right text-amber-400 font-extrabold mt-2">${money(amount)}</div>
+    </div>`;
+}
+
+function addGroup(){
+  state.groups.push({name:'Novo grupo',count:1});
+  saveCurrent();
+  render();
+}
+
+function isCurrentEmpty(){
+  return (
+    state.adults===0&&
+    state.kids===0&&
+    !state.profile&&
+    !state.meatGrams&&
+    db.every(item=>!item.active)&&
+    state.groups.length===0
+  );
+}
+
+function saveCalculation(){
+  if(isCurrentEmpty())return;
+
+  document.getElementById('saveCalcName').value=state.barbecueName||'Meu churrasco';
+  document.getElementById('saveCalcDate').value=state.barbecueDate||todayISO();
+  document.getElementById('saveModalTitle').textContent=state.historyId?'Atualizar cálculo':'Salvar cálculo';
+  document.getElementById('saveModalConfirm').textContent=state.historyId?'Atualizar':'Salvar';
+
+  document.getElementById('saveModal').classList.remove('hidden');
+  document.getElementById('saveModal').classList.add('flex');
+}
+
+function closeSaveModal(){
+  document.getElementById('saveModal').classList.add('hidden');
+  document.getElementById('saveModal').classList.remove('flex');
+}
+
+function persistHistory(){
+
+  const name=document.getElementById('saveCalcName').value.trim()||'Meu churrasco';
+  const date=document.getElementById('saveCalcDate').value||todayISO();
+
+  state.barbecueName=name;
+  state.barbecueDate=date;
+
+  if(state.historyId){
+
+    const index=history.findIndex(item=>item.id===state.historyId);
+
+    if(index>=0){
+      history[index]={
+        ...history[index],
+        name,
+        date,
+        updatedAt:new Date().toISOString(),
+        state:JSON.parse(JSON.stringify(state)),
+        db:JSON.parse(JSON.stringify(db))
+      };
+    }
+
+  }else{
+
+    const id='calc_'+Date.now();
+    state.historyId=id;
+
+    history.unshift({
+      id,
+      name,
+      date,
+      createdAt:new Date().toISOString(),
+      state:JSON.parse(JSON.stringify(state)),
+      db:JSON.parse(JSON.stringify(db))
+    });
+
+  }
+
+  history=history.slice(0,50);
+
+  localStorage.setItem(HISTORY_KEY,JSON.stringify(history));
+  saveCurrent();
+}
+
+function confirmSaveCalculation(){
+  persistHistory();
+  closeSaveModal();
+  render();
+}
+
+function startNewCalculation(){
+
+  if(!isCurrentEmpty()){
+
+    const snapshotState={
+      ...JSON.parse(JSON.stringify(state))
+    };
+
+    const snapshotDb=
+      JSON.parse(JSON.stringify(db));
+
+    if(state.historyId){
+
+      const index=history.findIndex(
+        item=>item.id===state.historyId
+      );
+
+      if(index>=0){
+
+        history[index]={
+          ...history[index],
+          name:state.barbecueName||'Churrasco',
+          date:state.barbecueDate||todayISO(),
+          state:snapshotState,
+          db:snapshotDb,
+          updatedAt:new Date().toISOString()
+        };
+
+      }
+
+    }else{
+
+      const id='calc_'+Date.now();
+
+      history.unshift({
+        id,
+        name:state.barbecueName||'Churrasco',
+        date:state.barbecueDate||todayISO(),
+        createdAt:new Date().toISOString(),
+        state:{
+          ...snapshotState,
+          historyId:id
+        },
+        db:snapshotDb
+      });
+
+    }
+
+    history=history.slice(0,50);
+    localStorage.setItem(HISTORY_KEY,JSON.stringify(history));
+  }
+
+  state={...emptyState};
+
+  db=db.map(item=>({...item,active:false}));
+
+  saveCurrent();
+  render();
+}
+
+function openHistory(){
+  renderHistory();
+  document.getElementById('historyModal').classList.remove('hidden');
+  document.getElementById('historyModal').classList.add('flex');
+}
+
+function closeHistory(){
+  document.getElementById('historyModal').classList.add('hidden');
+  document.getElementById('historyModal').classList.remove('flex');
+}
+
+function renderHistory(){
+
+  const container=document.getElementById('historyList');
+
+  if(!history.length){
+    container.innerHTML=`
+      <div class="text-center py-10">
+        <div class="text-4xl mb-3">📋</div>
+        <b class="block">Nenhum churrasco salvo</b>
+        <p class="text-xs text-gray-500 mt-1">Salve um cálculo para ele aparecer aqui.</p>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML=history.map((item,index)=>`
+    <div class="bg-gray-950 border border-gray-800 rounded-2xl p-4">
+      <div class="flex justify-between gap-3">
+        <div class="min-w-0">
+          <b class="block truncate">${escapeHtml(item.name)}</b>
+          <span class="text-xs text-gray-500">📅 ${formatDate(item.date)}</span>
+        </div>
+        <button onclick="deleteHistory(${index})" class="text-red-400 text-sm shrink-0">🗑</button>
+      </div>
+
+      <div class="grid grid-cols-3 gap-2 mt-3">
+        <div class="bg-gray-900 rounded-xl p-2 text-center">
+          <span class="block text-[10px] text-gray-500">Pessoas</span>
+          <b class="text-sm">${(item.state.adults||0)+(item.state.kids||0)}</b>
+        </div>
+        <div class="bg-gray-900 rounded-xl p-2 text-center">
+          <span class="block text-[10px] text-gray-500">Carne</span>
+          <b class="text-sm">${meatTotalFromHistory(item)}</b>
+        </div>
+        <div class="bg-gray-900 rounded-xl p-2 text-center">
+          <span class="block text-[10px] text-gray-500">Itens</span>
+          <b class="text-sm">${item.db.filter(x=>x.active).length}</b>
+        </div>
+      </div>
+
+      <button onclick="loadHistoryItem(${index})" class="w-full mt-3 bg-amber-500 hover:bg-amber-400 text-gray-950 font-extrabold py-2.5 rounded-xl text-sm">Abrir cálculo</button>
+    </div>`).join('');
+}
+
+function meatTotalFromHistory(item){
+  const s=item.state||{};
+  if(!s.meatGrams)return '0.0 kg';
+  const value=((s.adults||0)*s.meatGrams+(s.kids||0)*s.meatGrams*.5)/1000;
+  return value.toFixed(1)+' kg';
+}
+
+function loadHistoryItem(index){
+
+  const saved=history[index];
+  if(!saved)return;
+
+  state={
+    ...emptyState,
+    ...JSON.parse(JSON.stringify(saved.state)),
+    historyId:saved.id,
+    barbecueName:saved.name,
+    barbecueDate:saved.date
+  };
+
+  db=JSON.parse(JSON.stringify(saved.db));
+
+  saveCurrent();
+  closeHistory();
+  render();
+}
+
+function deleteHistory(index){
+
+  if(!history[index])return;
+
+  history.splice(index,1);
+
+  localStorage.setItem(
+    HISTORY_KEY,
+    JSON.stringify(history)
+  );
+
+  renderHistory();
+}
+
+function buildShare(){
+
+  const p=totalPeople();
+  const cost=totalCost();
+
+  let t=
+    `🔥 *MEU CHURRASCO — TIU CHURRAS*\\n\\n`+
+    `📅 *${formatDate(state.barbecueDate)}*\\n`+
+    `👥 *${p} pessoas*\\n`+
+    `🥩 *${meatTotal().toFixed(1)} kg de carne*\\n`+
+    `💰 *Estimativa: ${money(cost)}*\\n\\n`;
+
+  [
+    ['carne','🥩 CARNES'],
+    ['aperitivo','🥖 APERITIVOS'],
+    ['acompanhamento','🥗 ACOMPANHAMENTOS'],
+    ['bebida','🥤 BEBIDAS'],
+    ['material','🔥 ESTRUTURA']
+  ].forEach(([cat,label])=>{
+
+    const arr=db.filter(
+      x=>x.active&&x.cat===cat
+    );
+
+    if(!arr.length)return;
+
+    t+=`*${label}*\\n`;
+
+    arr.forEach(x=>{
+      t+=`• ${x.name} — ${formatQty(x,itemQty(x))}\\n`;
+    });
+
+    t+='\n';
+  });
+
+  t+=`💳 *Por pessoa:* ${money(p?cost/p:0)}`;
+
+  return t;
+}
+
+function shareWhatsApp(){
+
+  const url=
+    'https://wa.me/?text='+
+    encodeURIComponent(
+      buildShare()
+    );
+
+  window.open(
+    url,
+    '_blank',
+    'noopener,noreferrer'
+  );
+}
+
+function openManager(){
+  document.getElementById('manager').classList.remove('hidden');
+  document.getElementById('manager').classList.add('flex');
+  renderManager();
+}
+
+function closeManager(){
+  document.getElementById('manager').classList.add('hidden');
+  document.getElementById('manager').classList.remove('flex');
+  render();
+}
+
+function removeItem(id){
+  db=db.filter(x=>x.id!==id);
+  saveCurrent();
+  renderManager();
+}
+
+function renderManager(){
+
+  document.getElementById('managerList').innerHTML=
+    db.map(x=>`
+
+      <div class="bg-gray-950 border border-gray-800 rounded-xl p-3 flex items-center gap-3">
+
+        <span class="text-xl">
+          ${x.icon}
+        </span>
+
+        <div class="flex-1">
+          <b class="text-sm">
+            ${escapeHtml(x.name)}
+          </b>
+
+          <span class="block text-[10px] text-gray-500">
+            ${x.cat} · ${x.unit}
+          </span>
+        </div>
+
+        <input
+          type="number"
+          step=".01"
+          value="${x.price}"
+          onchange="
+            x.price=Number(this.value);
+            saveCurrent();
+            render()
+          "
+          class="w-20 bg-gray-800 rounded-lg p-2 text-right text-xs"
+        >
+
+        ${
+          String(x.id).startsWith('custom_')
+            ? `
+              <button
+                onclick="removeItem('${x.id}')"
+                class="text-red-400"
+              >
+                🗑
+              </button>
+            `
+            : ''
+        }
+
+      </div>
+
+    `).join('');
+}
+
+function addCustomItem(e){
+
+  e.preventDefault();
+
+  const name=
+    document.getElementById('newName').value.trim();
+
+  const cat=
+    document.getElementById('newCat').value;
+
+  const price=
+    Number(
+      document.getElementById('newPrice').value
+    );
+
+  const unit=
+    document.getElementById('newUnit').value;
+
+  const cons=
+    Number(
+      document.getElementById('newConsumption').value
+    );
+
+  db.push({
+
+    id:
+      'custom_'+
+      Date.now(),
+
+    name,
+    cat,
+    price,
+    unit,
+    cons,
+
+    icon:
+      cat==='carne'
+        ? '🥩'
+        : cat==='bebida'
+        ? '🥤'
+        : '📦',
+
+    active:false
+
+  });
+
+  saveCurrent();
+
+  e.target.reset();
+
+  renderManager();
+
+  render();
+}
+
+function escapeHtml(s){
+  return String(s).replace(
+    /[&<>"']/g,
+    m=>({
+      '&':'&amp;',
+      '<':'&lt;',
+      '>':'&gt;',
+      '"':'&quot;',
+      "'":'&#039;'
+    }[m])
+  );
+}
+
+state={
+  ...emptyState,
+  ...state,
+  groups:Array.isArray(state.groups)?state.groups:[]
+};
+
+render();
+</script>
+
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .catch(error => console.error('Falha ao registrar o Service Worker:', error));
+  });
+}
+</script>
+
+</body>
+</html>
