@@ -1,5 +1,5 @@
 {
-  "id": "./",
+  "id": "/tiu-churras/",
   "name": "Tiu Churras — Planejador de Churrasco",
   "short_name": "Tiu Churras",
   "description": "Planejador de churrasco com cálculo de carnes, bebidas, lista de compras e divisão da conta.",
@@ -8,10 +8,6 @@
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "display_override": [
-    "standalone",
-    "browser"
-  ],
   "orientation": "portrait",
   "background_color": "#090d14",
   "theme_color": "#f59e0b",
