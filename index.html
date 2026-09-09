@@ -105,10 +105,6 @@
   </div>
 
   <footer class="bg-gray-950 border-t border-gray-800 p-3 sm:p-4">
-    <div class="grid grid-cols-2 gap-2 mb-3">
-      <button onclick="saveCalculation()" class="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-200 font-bold py-2.5 rounded-xl text-xs">💾 Salvar cálculo</button>
-      <button onclick="startNewCalculation()" class="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-200 font-bold py-2.5 rounded-xl text-xs">➕ Novo cálculo</button>
-    </div>
     <div id="miniSummary" class="grid grid-cols-3 gap-2 mb-3"></div>
     <div class="flex gap-2">
       <button id="backBtn" onclick="prevStep()" class="w-1/3 bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold py-3 rounded-2xl disabled:opacity-30 disabled:cursor-not-allowed">← Voltar</button>
@@ -469,15 +465,16 @@ function screenPeople(){
     <div class="space-y-6">
       <div class="glass border border-amber-500/30 rounded-3xl p-5 text-center">
         <div class="text-[11px] uppercase tracking-wider text-gray-500 font-bold">Total</div>
-        <div class="flex items-center justify-center gap-5 mt-2">
-          <button onclick="setPeople('adults',-1)" class="w-12 h-12 rounded-2xl bg-gray-700 text-2xl font-bold text-amber-400">−</button>
-          <div><strong class="text-6xl font-black">${totalPeople()}</strong><div class="text-sm text-gray-400">pessoas</div></div>
-          <button onclick="setPeople('adults',1)" class="w-12 h-12 rounded-2xl bg-amber-500 text-gray-950 text-2xl font-bold">+</button>
+        <div class="flex items-center justify-center mt-2">
+          <div class="text-center">
+            <strong class="text-6xl leading-none font-black">${totalPeople()}</strong>
+            <div class="text-sm text-gray-400 mt-1">pessoas</div>
+          </div>
         </div>
         <div class="text-xs text-gray-500 mt-3">Ajuste adultos e crianças abaixo.</div>
       </div>
 
-      <div class="grid grid-cols-2 gap-3">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
         ${personCounter('adults','👤','Adultos',state.adults)}
         ${personCounter('kids','🧒','Crianças',state.kids)}
       </div>
@@ -505,12 +502,15 @@ function screenPeople(){
 
 function personCounter(key,icon,label,value){
   return `
-    <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4 flex items-center justify-between">
-      <div><div class="text-xl">${icon}</div><b>${label}</b></div>
-      <div class="flex items-center gap-2">
-        <button onclick="setPeople('${key}',-1)" class="w-9 h-9 bg-gray-800 rounded-xl text-amber-400 font-bold">−</button>
-        <b class="w-6 text-center">${value}</b>
-        <button onclick="setPeople('${key}',1)" class="w-9 h-9 bg-gray-800 rounded-xl text-amber-400 font-bold">+</button>
+    <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4 flex items-center justify-between gap-4 min-w-0">
+      <div class="min-w-0">
+        <div class="text-xl">${icon}</div>
+        <b class="block truncate">${label}</b>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <button onclick="setPeople('${key}',-1)" aria-label="Diminuir ${label}" class="w-10 h-10 bg-gray-800 rounded-xl text-amber-400 font-bold text-lg">−</button>
+        <b class="w-8 text-center text-lg">${value}</b>
+        <button onclick="setPeople('${key}',1)" aria-label="Aumentar ${label}" class="w-10 h-10 bg-gray-800 rounded-xl text-amber-400 font-bold text-lg">+</button>
       </div>
     </div>`;
 }
@@ -659,6 +659,11 @@ function screenResult(){
             </div>`}
           <button onclick="addGroup()" class="w-full bg-amber-500 text-gray-950 font-extrabold py-3 rounded-xl">+ Adicionar grupo</button>
         </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <button onclick="saveCalculation()" class="bg-gray-800 hover:bg-gray-700 border border-gray-700 text-gray-200 font-bold py-3 rounded-2xl text-sm">💾 Salvar cálculo</button>
+        <button onclick="startNewCalculation()" class="bg-amber-500 hover:bg-amber-400 text-gray-950 font-extrabold py-3 rounded-2xl text-sm">➕ Novo cálculo</button>
       </div>
 
       <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4 text-xs text-gray-500">
