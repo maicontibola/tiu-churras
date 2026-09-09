@@ -243,7 +243,7 @@ const emptyState={
   adults:0,
   kids:0,
   profile:null,
-  meatGrams:null,
+  meatGrams:200,
   groups:[],
   barbecueName:'',
   barbecueDate:'',
@@ -267,7 +267,7 @@ function loadCurrent(){
   try{
     const saved=JSON.parse(localStorage.getItem(CURRENT_KEY));
     if(saved&&typeof saved==='object'){
-      return {...emptyState,...saved,groups:Array.isArray(saved.groups)?saved.groups:[]};
+      return {...emptyState,...saved,meatGrams:saved.meatGrams ?? 200,groups:Array.isArray(saved.groups)?saved.groups:[]};
     }
   }catch(e){}
   return {...emptyState,groups:[]};
@@ -527,7 +527,7 @@ function screenMeat(){
           </div>
           <div class="text-right">
             <div class="text-xs font-bold opacity-70">${state.adults} adultos · ${state.kids} crianças</div>
-            <div class="text-sm font-black mt-1">${state.meatGrams?state.meatGrams+' g/adulto':'Escolha uma porção'}</div>
+            <div class="text-sm font-black mt-1">${state.meatGrams+' g/adulto'}</div>
           </div>
         </div>
         <p class="text-xs font-semibold mt-3 opacity-80">Crianças entram automaticamente com metade da porção de adulto.</p>
@@ -536,7 +536,7 @@ function screenMeat(){
       <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4">
         <div class="flex justify-between items-center">
           <b>Quanto você quer servir?</b>
-          <b class="text-amber-400">${state.meatGrams?state.meatGrams+' g':'Escolha'}</b>
+          <b class="text-amber-400">${state.meatGrams+' g'}</b>
         </div>
         <div class="grid grid-cols-4 gap-2 mt-3">
           ${[200,250,300,350].map(value=>`
@@ -555,7 +555,7 @@ function screenMeat(){
 
       <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4">
         <div class="flex justify-between items-center"><b>Como o cálculo funciona?</b><span class="text-amber-400">ⓘ</span></div>
-        <p class="text-xs text-gray-500 mt-2">${state.meatGrams||0} g por adulto + 50% da porção para cada criança. Depois distribuo esse total entre as carnes escolhidas.</p>
+        <p class="text-xs text-gray-500 mt-2">${state.meatGrams} g por adulto + 50% da porção para cada criança. Depois distribuo esse total entre as carnes escolhidas.</p>
       </div>
     </div>`;
 }
@@ -855,7 +855,7 @@ function startNewCalculation(){
     localStorage.setItem(HISTORY_KEY,JSON.stringify(history));
   }
 
-  state={...emptyState};
+  state={...emptyState,meatGrams:200};
 
   db=db.map(item=>({...item,active:false}));
 
