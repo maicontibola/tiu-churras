@@ -958,6 +958,9 @@ function deleteHistory(index){
   renderHistory();
 }
 
+
+
+
 function buildShare(){
 
   const p = totalPeople();
@@ -966,29 +969,23 @@ function buildShare(){
 
   const lines = [];
 
-  // Cabeçalho
-  lines.push('🔥 *MEU CHURRASCO*');
-  lines.push('━━━━━━━━━━━━━━━━');
-  
-  if(state.barbecueName){
-    lines.push(`📌 *${state.barbecueName}*`);
-  }
-
-  if(state.barbecueDate){
-    lines.push(`📅 ${formatDate(state.barbecueDate)}`);
-  }
-
-  lines.push(`👥 ${p} pessoas`);
-  lines.push(`🥩 ${meatTotal().toFixed(1)} kg de carne`);
+  // Título
+  lines.push('*LISTA DO CHURRASCO*');
   lines.push('');
 
-  // Lista de compras
+  // Resumo
+  lines.push(`${p} pessoas`);
+  lines.push(`${meatTotal().toFixed(1).replace('.', ',')} kg de carne`);
+  lines.push(`Estimativa: ${money(cost)}`);
+  lines.push('');
+
+  // Categorias
   const categories = [
-    ['carne', '🥩 CARNES'],
-    ['aperitivo', '🥖 APERITIVOS'],
-    ['acompanhamento', '🥗 ACOMPANHAMENTOS'],
-    ['bebida', '🥤 BEBIDAS'],
-    ['material', '🔥 ESTRUTURA']
+    ['carne', 'CARNES'],
+    ['aperitivo', 'APERITIVOS'],
+    ['acompanhamento', 'ACOMPANHAMENTOS'],
+    ['bebida', 'BEBIDAS'],
+    ['material', 'ESTRUTURA']
   ];
 
   categories.forEach(([cat, label]) => {
@@ -997,27 +994,34 @@ function buildShare(){
       x => x.active && x.cat === cat
     );
 
-    if(!arr.length) return;
+    if (!arr.length) return;
 
     lines.push(`*${label}*`);
 
-    arr.forEach(x => {
-      lines.push(`☐ ${x.name} — *${formatQty(x, itemQty(x))}*`);
+    arr.forEach(item => {
+
+      let qty = formatQty(item, itemQty(item));
+
+      // Padroniza decimal para português
+      qty = qty.replace('.', ',');
+
+      lines.push(`• ${item.name} — ${qty}`);
     });
 
     lines.push('');
   });
 
   // Resumo financeiro
-  lines.push('💰 *RESUMO*');
-  lines.push(`Total estimado: *${money(cost)}*`);
-  lines.push(`Por pessoa: *${money(perPerson)}*`);
-
+  lines.push('*TOTAL*');
+  lines.push(money(cost));
   lines.push('');
-  lines.push('🔥 _Bom churrasco!_');
+
+  lines.push('*POR PESSOA*');
+  lines.push(money(perPerson));
 
   return lines.join('\n');
 }
+
 
 function shareWhatsApp(){
 
