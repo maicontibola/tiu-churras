@@ -960,42 +960,63 @@ function deleteHistory(index){
 
 function buildShare(){
 
-  const p=totalPeople();
-  const cost=totalCost();
+  const p = totalPeople();
+  const cost = totalCost();
+  const perPerson = p ? cost / p : 0;
 
-  let t=
-    `🔥 *MEU CHURRASCO — TIU CHURRAS*\\n\\n`+
-    `📅 *${formatDate(state.barbecueDate)}*\\n`+
-    `👥 *${p} pessoas*\\n`+
-    `🥩 *${meatTotal().toFixed(1)} kg de carne*\\n`+
-    `💰 *Estimativa: ${money(cost)}*\\n\\n`;
+  const lines = [];
 
-  [
-    ['carne','🥩 CARNES'],
-    ['aperitivo','🥖 APERITIVOS'],
-    ['acompanhamento','🥗 ACOMPANHAMENTOS'],
-    ['bebida','🥤 BEBIDAS'],
-    ['material','🔥 ESTRUTURA']
-  ].forEach(([cat,label])=>{
+  // Cabeçalho
+  lines.push('🔥 *MEU CHURRASCO*');
+  lines.push('━━━━━━━━━━━━━━━━');
+  
+  if(state.barbecueName){
+    lines.push(`📌 *${state.barbecueName}*`);
+  }
 
-    const arr=db.filter(
-      x=>x.active&&x.cat===cat
+  if(state.barbecueDate){
+    lines.push(`📅 ${formatDate(state.barbecueDate)}`);
+  }
+
+  lines.push(`👥 ${p} pessoas`);
+  lines.push(`🥩 ${meatTotal().toFixed(1)} kg de carne`);
+  lines.push('');
+
+  // Lista de compras
+  const categories = [
+    ['carne', '🥩 CARNES'],
+    ['aperitivo', '🥖 APERITIVOS'],
+    ['acompanhamento', '🥗 ACOMPANHAMENTOS'],
+    ['bebida', '🥤 BEBIDAS'],
+    ['material', '🔥 ESTRUTURA']
+  ];
+
+  categories.forEach(([cat, label]) => {
+
+    const arr = db.filter(
+      x => x.active && x.cat === cat
     );
 
-    if(!arr.length)return;
+    if(!arr.length) return;
 
-    t+=`*${label}*\\n`;
+    lines.push(`*${label}*`);
 
-    arr.forEach(x=>{
-      t+=`• ${x.name} — ${formatQty(x,itemQty(x))}\\n`;
+    arr.forEach(x => {
+      lines.push(`☐ ${x.name} — *${formatQty(x, itemQty(x))}*`);
     });
 
-    t+='\n';
+    lines.push('');
   });
 
-  t+=`💳 *Por pessoa:* ${money(p?cost/p:0)}`;
+  // Resumo financeiro
+  lines.push('💰 *RESUMO*');
+  lines.push(`Total estimado: *${money(cost)}*`);
+  lines.push(`Por pessoa: *${money(perPerson)}*`);
 
-  return t;
+  lines.push('');
+  lines.push('🔥 _Bom churrasco!_');
+
+  return lines.join('\n');
 }
 
 function shareWhatsApp(){
